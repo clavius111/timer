@@ -3,39 +3,41 @@
 <head>
     <style>
         body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .timer-container { display: flex; gap: 15px; width: 100%; max-width: 1000px; justify-content: center; }
-        .timer-card { background: #2d2d2d; border-radius: 10px; padding: 15px; width: 300px; border: 1px solid #444; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .title { font-size: 12px; color: #888; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px; }
+        .timer-container { display: flex; flex-direction: column; gap: 15px; width: 320px; } /* 세로 배치 및 너비 고정 */
+        .timer-card { background: #2d2d2d; border-radius: 8px; padding: 12px; border: 1px solid #444; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         
-        /* 시간을 넉넉하게 넣을 수 있도록 입력창 가로 확대 */
-        input { 
+        /* 한 줄 메모장 스타일 */
+        .memo-input { 
+            background: transparent; color: #888; border: none; border-bottom: 1px solid #444;
+            width: 95%; font-size: 11px; margin-bottom: 8px; padding: 2px 5px; outline: none;
+        }
+        .memo-input:focus { border-bottom: 1px solid #00ff00; color: #eee; }
+
+        /* 시간 입력창: 24시간도 넉넉하게 */
+        .time-display { 
             background: #111; color: #00ff00; border: 1px solid #555; 
-            font-size: 28px; width: 90%; text-align: center; 
-            padding: 8px 0; border-radius: 5px; margin-bottom: 15px;
+            font-size: 32px; width: 95%; text-align: center; 
+            padding: 5px 0; border-radius: 4px; margin-bottom: 10px;
             font-family: 'Courier New', monospace;
         }
 
-        /* 버튼 크기를 작고 깔끔하게 조절 */
-        .btn-group { display: flex; gap: 5px; justify-content: center; }
+        /* 버튼 그룹: 슬림하고 깔끔하게 */
+        .btn-group { display: flex; gap: 5px; justify-content: flex-end; }
         button { 
-            padding: 6px 12px; border: none; border-radius: 4px; 
+            padding: 4px 10px; border: none; border-radius: 3px; 
             cursor: pointer; font-weight: bold; font-size: 11px; 
-            transition: 0.2s;
         }
-        .start { background: #2e7d32; color: white; width: 60px; }
-        .start:hover { background: #388e3c; }
-        .reset { background: #c62828; color: white; width: 50px; }
-        .reset:hover { background: #d32f2f; }
+        .start { background: #2e7d32; color: white; }
+        .reset { background: #c62828; color: white; }
+        button:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
 
-    <h2 style="color: #555; margin-bottom: 30px;">BING MACRO CONTROL CENTER</h2>
-
     <div class="timer-container">
         <div class="timer-card">
-            <div class="title">S21 MACRO</div>
-            <input type="text" id="t1" value="00:15:00">
+            <input type="text" class="memo-input" placeholder="여기에 메모 입력 (예: S21 미국주식)">
+            <input type="text" id="t1" class="time-display" value="00:15:00">
             <div class="btn-group">
                 <button class="start" onclick="start(1)">START</button>
                 <button class="reset" onclick="reset(1)">RESET</button>
@@ -43,8 +45,8 @@
         </div>
 
         <div class="timer-card">
-            <div class="title">PC BING</div>
-            <input type="text" id="t2" value="00:25:00">
+            <input type="text" class="memo-input" placeholder="여기에 메모 입력 (예: PC 블루스택)">
+            <input type="text" id="t2" class="time-display" value="00:25:00">
             <div class="btn-group">
                 <button class="start" onclick="start(2)">START</button>
                 <button class="reset" onclick="reset(2)">RESET</button>
@@ -52,8 +54,8 @@
         </div>
 
         <div class="timer-card">
-            <div class="title">CUSTOM</div>
-            <input type="text" id="t3" value="24:00:00">
+            <input type="text" class="memo-input" placeholder="여기에 메모 입력 (예: 기타 작업)">
+            <input type="text" id="t3" class="time-display" value="24:00:00">
             <div class="btn-group">
                 <button class="start" onclick="start(3)">START</button>
                 <button class="reset" onclick="reset(3)">RESET</button>
@@ -85,11 +87,15 @@
                 el.style.color = "#00ff00";
             }, 1000);
         }
+
         function reset(id) {
-            clearInterval(intervals[id]);
-            intervals[id] = null;
-            document.getElementById('t' + id).value = "00:00:00";
-            document.getElementById('t' + id).style.color = "#00ff00";
+            // 리셋 시 경고창 추가
+            if (confirm(id + "번 타이머를 초기화하시겠습니까?")) {
+                clearInterval(intervals[id]);
+                intervals[id] = null;
+                document.getElementById('t' + id).value = "00:00:00";
+                document.getElementById('t' + id).style.color = "#00ff00";
+            }
         }
     </script>
 </body>
