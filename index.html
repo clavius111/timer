@@ -1,129 +1,115 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
         body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
         .timer-container { display: flex; flex-direction: column; gap: 15px; width: 340px; }
-        .timer-card { background: #2d2d2d; border-radius: 10px; padding: 15px; border: 1px solid #444; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        
-        /* 상단 메모/타이틀 영역 */
-        .memo-input { 
-            background: transparent; color: #00ff00; border: none; border-bottom: 1px solid #444;
-            width: 95%; font-size: 13px; margin-bottom: 10px; padding: 2px 5px; outline: none; font-weight: bold;
-        }
-
-        /* 자유 입력창: 문장으로 적어도 됨 */
-        .time-input { 
-            background: #111; color: #eee; border: 1px solid #555; 
-            font-size: 20px; width: 95%; text-align: center; 
-            padding: 8px 0; border-radius: 5px; margin-bottom: 10px;
-            outline: none;
-        }
-        .time-input:focus { border-color: #00ff00; }
-
-        /* 버튼 디자인 */
-        .btn-group { display: flex; gap: 8px; justify-content: center; }
-        button { 
-            padding: 8px 15px; border: none; border-radius: 4px; 
-            cursor: pointer; font-weight: bold; font-size: 12px; transition: 0.2s;
-        }
-        .start { background: #2e7d32; color: white; flex: 2; }
-        .reset { background: #c62828; color: white; flex: 1; }
-        button:hover { opacity: 0.8; transform: scale(1.02); }
+        .timer-card { background: #2d2d2d; border-radius: 10px; padding: 18px; border: 1px solid #444; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
+        .memo-input { background: transparent; color: #00ff00; border: none; border-bottom: 1px solid #444; width: 100%; font-size: 14px; margin-bottom: 12px; padding: 5px; outline: none; font-weight: bold; }
+        .time-input { background: #111; color: #eee; border: 1px solid #555; font-size: 24px; width: 100%; text-align: center; padding: 10px 0; border-radius: 6px; margin-bottom: 12px; outline: none; }
+        .btn-group { display: flex; gap: 10px; }
+        button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; flex: 1; }
+        .start { background: #2e7d32; color: white; }
+        .reset { background: #c62828; color: white; }
     </style>
 </head>
 <body>
 
-    <div class="timer-container">
-        <div class="timer-card">
-            <input type="text" class="memo-input" placeholder="메모 (예: S21 미국주식)">
-            <input type="text" id="t1" class="time-input" placeholder="예: 1h 30m / 90분">
-            <div class="btn-group">
-                <button class="start" onclick="runTimer(1)">START</button>
-                <button class="reset" onclick="confirmReset(1)">RESET</button>
-            </div>
+    <div class="timer-container" id="app">
         </div>
-
-        <div class="timer-card">
-            <input type="text" class="memo-input" placeholder="메모 (예: PC 블루스택)">
-            <input type="text" id="t2" class="time-input" placeholder="예: 45m / 25:00">
-            <div class="btn-group">
-                <button class="start" onclick="runTimer(2)">START</button>
-                <button class="reset" onclick="confirmReset(2)">RESET</button>
-            </div>
-        </div>
-
-        <div class="timer-card">
-            <input type="text" class="memo-input" placeholder="메모 (예: 기타 작업)">
-            <input type="text" id="t3" class="time-input" placeholder="예: 24시간 / 1day">
-            <div class="btn-group">
-                <button class="start" onclick="runTimer(3)">START</button>
-                <button class="reset" onclick="confirmReset(3)">RESET</button>
-            </div>
-        </div>
-    </div>
 
     <script>
-        let intervals = {};
+        // 🔥 런사님의 파이어베이스 설정 (어제 넣었던 그거!)
+        const firebaseConfig = {
+            databaseURL: "https://your-project-id.firebaseio.com" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        // 지능형 시간 파싱 함수 (1h 30m, 90분, 01:30:00 모두 지원)
-        function parseTime(str) {
-            let totalSeconds = 0;
-            const hMatch = str.match(/(\d+)\s*(h|hour|시간)/);
-            const mMatch = str.match(/(\d+)\s*(m|min|분)/);
-            const sMatch = str.match(/(\d+)\s*(s|sec|초)/);
-            const colonMatch = str.match(/(\d+):(\d+):?(\d+)?/);
-
-            if (colonMatch) {
-                let h = parseInt(colonMatch[1]) || 0;
-                let m = parseInt(colonMatch[2]) || 0;
-                let s = parseInt(colonMatch[3]) || 0;
-                // 만약 형식은 00:00인데 숫자가 두 개뿐이라면 분:초로 계산
-                if (colonMatch[3] === undefined) { totalSeconds = h * 60 + m; }
-                else { totalSeconds = h * 3600 + m * 60 + s; }
-            } else {
-                if (hMatch) totalSeconds += parseInt(hMatch[1]) * 3600;
-                if (mMatch) totalSeconds += parseInt(mMatch[1]) * 60;
-                if (sMatch) totalSeconds += parseInt(sMatch[1]);
-                // 숫자만 적었을 경우 (분 단위 기본값)
-                if (!hMatch && !mMatch && !sMatch && !isNaN(str)) totalSeconds = parseInt(str) * 60;
-            }
-            return totalSeconds;
+        // 지능형 시간 파싱 (1시간 30분 등)
+        function parseToSeconds(str) {
+            let total = 0;
+            const h = str.match(/(\d+)\s*(h|hour|시간)/);
+            const m = str.match(/(\d+)\s*(m|min|분)/);
+            const s = str.match(/(\d+)\s*(s|sec|초)/);
+            if (h) total += parseInt(h[1]) * 3600;
+            if (m) total += parseInt(m[1]) * 60;
+            if (s) total += parseInt(s[1]);
+            if (!h && !m && !s && !isNaN(str)) total = parseInt(str) * 60;
+            return total;
         }
 
-        function runTimer(id) {
-            if (intervals[id]) return;
-            let el = document.getElementById('t' + id);
-            let sec = parseTime(el.value);
-            
-            if (sec <= 0) { alert("시간을 입력해주세요!"); return; }
+        // 서버에 타이머 데이터 저장 (Start 버튼)
+        function startTimer(id) {
+            const input = document.getElementById('t' + id).value;
+            const duration = parseToSeconds(input);
+            if (duration <= 0) return alert("시간을 입력하세요!");
 
-            intervals[id] = setInterval(() => {
-                if (sec <= 0) {
-                    clearInterval(intervals[id]);
-                    intervals[id] = null;
-                    el.value = "TIME UP!";
-                    el.style.color = "#ff4444";
-                    alert(id + "번 작업 종료!");
-                    return;
+            const endTime = Date.now() + duration * 1000;
+            db.ref('timers/' + id).set({
+                endTime: endTime,
+                memo: document.getElementById('m' + id).value,
+                active: true
+            });
+        }
+
+        // 리셋 버튼 (서버 데이터 삭제)
+        function resetTimer(id) {
+            if (confirm("초기화할까요?")) {
+                db.ref('timers/' + id).remove();
+            }
+        }
+
+        // 실시간 동기화 및 화면 업데이트
+        for (let i = 1; i <= 3; i++) {
+            const card = document.createElement('div');
+            card.className = 'timer-card';
+            card.innerHTML = `
+                <input type="text" id="m${i}" class="memo-input" placeholder="메모 입력" onchange="db.ref('timers/${i}/memo').set(this.value)">
+                <input type="text" id="t${i}" class="time-input" placeholder="1시간 30분">
+                <div class="btn-group">
+                    <button class="start" onclick="startTimer(${i})">START</button>
+                    <button class="reset" onclick="resetTimer(${i})">RESET</button>
+                </div>
+            `;
+            document.getElementById('app').appendChild(card);
+
+            // 서버 데이터 감시 (PC/폰 실시간 동기화)
+            db.ref('timers/' + i).on('value', (snapshot) => {
+                const data = snapshot.val();
+                const inputEl = document.getElementById('t' + i);
+                const memoEl = document.getElementById('m' + i);
+                
+                if (data && data.active) {
+                    memoEl.value = data.memo || "";
+                    updateDisplay(i, data.endTime);
+                } else {
+                    inputEl.value = "";
+                    inputEl.style.color = "#eee";
                 }
-                sec--;
-                let h = Math.floor(sec / 3600).toString().padStart(2, '0');
-                let m = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
-                let s = (sec % 60).toString().padStart(2, '0');
-                el.value = `${h}:${m}:${s}`;
-                el.style.color = "#00ff00";
-            }, 1000);
+            });
         }
 
-        function confirmReset(id) {
-            if (confirm(id + "번 타이머를 초기화하시겠습니까?")) {
-                clearInterval(intervals[id]);
-                intervals[id] = null;
-                let el = document.getElementById('t' + id);
-                el.value = "";
-                el.style.color = "#eee";
-            }
+        function updateDisplay(id, endTime) {
+            const timerInterval = setInterval(() => {
+                const remaining = Math.round((endTime - Date.now()) / 1000);
+                const el = document.getElementById('t' + id);
+                if (!el) return clearInterval(timerInterval);
+
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    el.value = "FINISH!";
+                    el.style.color = "#ff4444";
+                } else {
+                    const h = Math.floor(remaining / 3600).toString().padStart(2, '0');
+                    const m = Math.floor((remaining % 3600) / 60).toString().padStart(2, '0');
+                    const s = (remaining % 60).toString().padStart(2, '0');
+                    el.value = `${h}:${m}:${s}`;
+                    el.style.color = "#00ff00";
+                }
+            }, 1000);
         }
     </script>
 </body>
