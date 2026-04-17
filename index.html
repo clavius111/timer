@@ -2,151 +2,107 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>런사 서버 상황실 (통합본)</title>
-    
+    <title>런사 서버 상황실 (메모 고정형)</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
     <style>
-        /* 런사님 맞춤형 다크 테마 & PC 세로형 레이아웃 */
-        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        body { background: #1a1a1a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
         .timer-container { display: flex; flex-direction: column; gap: 15px; width: 340px; }
-        .timer-card { background: #2d2d2d; border-radius: 12px; padding: 18px; border: 1px solid #444; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
-        
-        /* 상단 한 줄 메모장 */
-        .memo-input { 
-            background: transparent; color: #00ff00; border: none; border-bottom: 1px solid #444;
-            width: 100%; font-size: 14px; margin-bottom: 12px; padding: 5px; outline: none; font-weight: bold;
-        }
-
-        /* 지능형 입력창 (시간 표시창) */
-        .time-input { 
-            background: #111; color: #eee; border: 1px solid #555; 
-            font-size: 26px; width: 100%; text-align: center; 
-            padding: 10px 0; border-radius: 6px; margin-bottom: 15px;
-            outline: none; box-sizing: border-box;
-            font-family: 'Courier New', monospace;
-        }
-        .time-input:focus { border-color: #00ff00; background: #000; }
-
-        /* 버튼 그룹 */
+        .timer-card { background: #2d2d2d; border-radius: 12px; padding: 18px; border: 1px solid #444; }
+        .memo-input { background: transparent; color: #00ff00; border: none; border-bottom: 1px solid #444; width: 100%; font-size: 14px; margin-bottom: 12px; padding: 5px; outline: none; font-weight: bold; }
+        .time-input { background: #111; color: #eee; border: 1px solid #555; font-size: 26px; width: 100%; text-align: center; padding: 10px 0; border-radius: 6px; margin-bottom: 15px; outline: none; font-family: monospace; }
         .btn-group { display: flex; gap: 10px; }
-        button { 
-            padding: 10px; border: none; border-radius: 5px; 
-            cursor: pointer; font-weight: bold; font-size: 13px; flex: 1; transition: 0.2s;
-        }
+        button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; flex: 1; }
         .start { background: #2e7d32; color: white; }
         .reset { background: #c62828; color: white; }
-        button:hover { filter: brightness(1.2); transform: scale(1.02); }
     </style>
 </head>
 <body>
 
-    <h3 style="color: #666; margin-bottom: 20px;">CLOUD CONTROL CENTER</h3>
-
-    <div class="timer-container" id="app">
-        </div>
+    <div class="timer-container" id="app"></div>
 
     <script>
-        // 🔥 런사님의 실제 파이어베이스 주소
-        const firebaseConfig = {
-            databaseURL: "https://timer-5027d-default-rtdb.asia-southeast1.firebasedatabase.app"
-        };
+        const firebaseConfig = { databaseURL: "https://timer-5027d-default-rtdb.asia-southeast1.firebasedatabase.app" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        let activeIntervals = {};
 
-        let activeIntervals = {}; // 각 타이머의 시계를 관리하는 보관함
-
-        // 🧠 지능형 시간 파싱 엔진 (1시간 30분, 90m, 10 등 모두 지원)
         function parseToSeconds(str) {
             let total = 0;
-            const h = str.match(/(\d+)\s*(h|hour|시간)/);
-            const m = str.match(/(\d+)\s*(m|min|분)/);
-            const s = str.match(/(\d+)\s*(s|sec|초)/);
-            const colon = str.match(/(\d+):(\d+):?(\d+)?/);
-
-            if (colon) {
-                const a = parseInt(colon[1]) || 0;
-                const b = parseInt(colon[2]) || 0;
-                const c = parseInt(colon[3]);
-                total = (c === undefined) ? (a * 60 + b) : (a * 3600 + b * 60 + c);
-            } else {
-                if (h) total += parseInt(h[1]) * 3600;
-                if (m) total += parseInt(m[1]) * 60;
-                if (s) total += parseInt(s[1]);
-                // 숫자만 적었을 경우 기본 '분'으로 계산
-                if (!h && !m && !s && !isNaN(str) && str !== "") total = parseInt(str) * 60;
-            }
+            const h = str.match(/(\d+)\s*(h|시간)/);
+            const m = str.match(/(\d+)\s*(m|분)/);
+            const s = str.match(/(\d+)\s*(s|초)/);
+            if (h) total += parseInt(h[1]) * 3600;
+            if (m) total += parseInt(m[1]) * 60;
+            if (s) total += parseInt(s[1]);
+            if (!h && !m && !s && !isNaN(str) && str !== "") total = parseInt(str) * 60;
             return total;
         }
 
-        // --- 화면 초기 세팅 ---
         for (let i = 1; i <= 3; i++) {
             const card = document.createElement('div');
             card.className = 'timer-card';
             card.innerHTML = `
-                <input type="text" id="m${i}" class="memo-input" placeholder="메모 입력 (예: S21 미국주식)">
-                <input type="text" id="t${i}" class="time-input" placeholder="예: 1시간 30분 / 90">
+                <input type="text" id="m${i}" class="memo-input" placeholder="메모 입력" onchange="updateMemo(${i})">
+                <input type="text" id="t${i}" class="time-input" placeholder="시간 입력">
                 <div class="btn-group">
                     <button class="start" onclick="saveToCloud(${i})">START</button>
-                    <button class="reset" onclick="removeFromCloud(${i})">RESET</button>
+                    <button class="reset" onclick="resetTimeOnly(${i})">RESET</button>
                 </div>
             `;
             document.getElementById('app').appendChild(card);
 
-            // 📡 실시간 서버 감시 (리셋 및 새로고침 완벽 대응)
             db.ref('timers/' + i).on('value', (snapshot) => {
                 const data = snapshot.val();
                 const tInput = document.getElementById('t' + i);
                 const mInput = document.getElementById('m' + i);
                 
-                // 1. 일단 돌고 있는 시계가 있다면 무조건 멈춤 (리셋 대응)
-                if (activeIntervals[i]) {
-                    clearInterval(activeIntervals[i]);
-                    activeIntervals[i] = null;
-                }
+                if (activeIntervals[i]) clearInterval(activeIntervals[i]);
 
-                if (data && data.endTime) {
-                    // 2. 서버에 데이터가 있으면 화면 복구 및 시계 시작
-                    mInput.value = data.memo || "";
-                    startTicker(i, data.endTime);
-                } else {
-                    // 3. 서버에 데이터가 없으면(리셋됨) 화면 비우기
-                    tInput.value = "";
-                    mInput.value = "";
-                    tInput.style.color = "#eee";
+                if (data) {
+                    mInput.value = data.memo || ""; // 메모가 있으면 무조건 표시
+                    if (data.endTime && data.endTime > Date.now()) {
+                        startTicker(i, data.endTime);
+                    } else if (data.endTime) {
+                        tInput.value = "FINISH!";
+                        tInput.style.color = "#ff4444";
+                    } else {
+                        tInput.value = "";
+                        tInput.style.color = "#eee";
+                    }
                 }
             });
         }
 
-        // [버튼: START] 서버에 시간 기록
+        // 메모만 따로 서버에 저장하는 함수 (입력 후 엔터/클릭 시 작동)
+        function updateMemo(id) {
+            const memoText = document.getElementById('m' + id).value;
+            db.ref('timers/' + id).update({ memo: memoText });
+        }
+
         function saveToCloud(id) {
             const val = document.getElementById('t' + id).value;
             const duration = parseToSeconds(val);
             if (duration <= 0) return alert("시간을 입력해주세요!");
 
             const endTime = Date.now() + duration * 1000;
-            db.ref('timers/' + id).set({
+            db.ref('timers/' + id).update({
                 endTime: endTime,
                 memo: document.getElementById('m' + id).value
             });
         }
 
-        // [버튼: RESET] 서버에서 시간 삭제 (모든 기기 동시 중지)
-        function removeFromCloud(id) {
-            if (confirm("타이머를 초기화하시겠습니까?")) {
-                db.ref('timers/' + id).remove();
+        // 🚨 리셋 시 메모는 두고 시간(endTime)만 삭제!
+        function resetTimeOnly(id) {
+            if (confirm("시간을 초기화하시겠습니까? (메모는 유지됩니다)")) {
+                db.ref('timers/' + id).update({ endTime: null });
             }
         }
 
-        // [시계 로직] 화면에 숫자를 1초마다 갱신
         function startTicker(id, endTime) {
             const el = document.getElementById('t' + id);
-            
             activeIntervals[id] = setInterval(() => {
                 const remaining = Math.round((endTime - Date.now()) / 1000);
-
                 if (remaining <= 0) {
                     clearInterval(activeIntervals[id]);
                     el.value = "FINISH!";
