@@ -2,41 +2,51 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>런사 전용 3구 안전 타이머 (메모 포함)</title>
+    <title>런사 전용 3구 안전 타이머 (콤팩트 버전)</title>
     <style>
-        body { background-color: #1a1a1a; color: white; text-align: center; font-family: 'Malgun Gothic', sans-serif; padding: 20px; }
-        .timer-container { 
-            background: #252525; border-radius: 15px; padding: 20px; margin: 20px auto; 
-            max-width: 500px; border: 1px solid #333; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-        .timer-display { font-size: 60px; margin: 15px; color: #00ff00; font-weight: bold; font-family: monospace; }
-        .input-group { margin-bottom: 15px; }
-        input[type="number"] { padding: 10px; font-size: 16px; width: 100px; border-radius: 5px; border: none; }
+        body { background-color: #1a1a1a; color: white; text-align: center; font-family: 'Malgun Gothic', sans-serif; padding: 15px; }
+        h1 { font-size: 24px; margin-bottom: 10px; }
         
-        /* 추가된 메모장 디자인 */
-        textarea {
-            width: 90%;
-            height: 60px;
-            background-color: #333;
-            color: white;
-            border: 1px solid #555;
-            border-radius: 8px;
-            padding: 10px;
-            margin-top: 15px;
-            resize: vertical;
-            font-size: 14px;
-            font-family: inherit;
+        /* 컨테이너 크기 약 30% 축소 */
+        .timer-container { 
+            background: #252525; border-radius: 12px; padding: 15px; margin: 15px auto; 
+            max-width: 350px; border: 1px solid #333; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
-        textarea:focus { outline: none; border-color: #f1c40f; }
-
-        button { padding: 10px 18px; font-size: 16px; cursor: pointer; margin: 3px; border-radius: 5px; border: none; transition: 0.2s; font-weight: bold; }
+        
+        /* 타이머 숫자 크기 축소 (60px -> 42px) */
+        .timer-display { font-size: 42px; margin: 10px; color: #00ff00; font-weight: bold; font-family: monospace; }
+        
+        .input-group { margin-bottom: 10px; }
+        
+        /* 입력창 및 버튼 크기 축소 */
+        input[type="number"] { padding: 8px; font-size: 14px; width: 80px; border-radius: 5px; border: none; }
+        button { padding: 8px 14px; font-size: 14px; cursor: pointer; margin: 2px; border-radius: 5px; border: none; transition: 0.2s; font-weight: bold; }
         button:hover { opacity: 0.8; }
+        
         .btn-set { background-color: #3498db; color: white; }
         .btn-start { background-color: #2ecc71; color: white; }
         .btn-stop { background-color: #e67e22; color: white; }
         .btn-reset { background-color: #e74c3c; color: white; }
-        h2 { color: #f1c40f; margin: 0; padding-bottom: 5px; border-bottom: 2px solid #f1c40f; display: inline-block; }
-        .save-msg { color: #666; font-size: 13px; margin-top: 40px; }
+        
+        h2 { color: #f1c40f; font-size: 18px; margin: 0; padding-bottom: 4px; border-bottom: 2px solid #f1c40f; display: inline-block; }
+        
+        /* 메모장 크기 축소 */
+        textarea {
+            width: 90%;
+            height: 45px;
+            background-color: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 10px;
+            resize: vertical;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        textarea:focus { outline: none; border-color: #f1c40f; }
+
+        .save-msg { color: #666; font-size: 12px; margin-top: 25px; }
     </style>
 </head>
 <body>
@@ -91,17 +101,14 @@
             3: { timeLeft: 0, timerId: null }
         };
 
-        // 로드 시 타이머 시간과 메모 데이터 동시에 불러오기
         window.onload = function() {
             for (let i = 1; i <= 3; i++) {
-                // 시간 불러오기
                 const savedTime = localStorage.getItem('timerData' + i);
                 if (savedTime) {
                     timers[i].timeLeft = parseInt(savedTime);
                     updateDisplay(i);
                 }
                 
-                // 메모 불러오기
                 const savedMemo = localStorage.getItem('memoData' + i);
                 if (savedMemo) {
                     document.getElementById('memo' + i).value = savedMemo;
@@ -120,7 +127,6 @@
             localStorage.setItem('timerData' + idx, time);
         }
 
-        // 메모 자동 저장 함수 (글자를 입력할 때마다 실행됨)
         function saveMemo(idx) {
             const memoText = document.getElementById('memo' + idx).value;
             localStorage.setItem('memoData' + idx, memoText);
