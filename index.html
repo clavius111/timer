@@ -2,102 +2,52 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>런사 전용 안전 저장 타이머</title>
+    <title>런사 전용 3구 안전 타이머</title>
     <style>
-        body { background-color: #1a1a1a; color: white; text-align: center; font-family: 'Malgun Gothic', sans-serif; }
-        #timer { font-size: 80px; margin: 40px; color: #00ff00; font-weight: bold; text-shadow: 0 0 10px #00ff00; }
-        .input-group { margin-bottom: 20px; }
-        input { padding: 12px; font-size: 18px; width: 120px; border-radius: 8px; border: none; }
-        button { padding: 12px 24px; font-size: 18px; cursor: pointer; margin: 5px; border-radius: 8px; border: none; transition: 0.2s; }
+        body { background-color: #1a1a1a; color: white; text-align: center; font-family: 'Malgun Gothic', sans-serif; padding: 20px; }
+        .timer-container { 
+            background: #252525; border-radius: 15px; padding: 20px; margin-bottom: 30px; 
+            border: 1px solid #333; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .timer-display { font-size: 60px; margin: 20px; color: #00ff00; font-weight: bold; font-family: monospace; }
+        .input-group { margin-bottom: 15px; }
+        input { padding: 10px; font-size: 16px; width: 100px; border-radius: 5px; border: none; }
+        button { padding: 10px 18px; font-size: 16px; cursor: pointer; margin: 3px; border-radius: 5px; border: none; transition: 0.2s; font-weight: bold; }
         button:hover { opacity: 0.8; }
         .btn-set { background-color: #3498db; color: white; }
         .btn-start { background-color: #2ecc71; color: white; }
         .btn-stop { background-color: #e67e22; color: white; }
         .btn-reset { background-color: #e74c3c; color: white; }
-        .save-msg { color: #777; font-size: 14px; margin-top: 30px; }
+        h2 { color: #f1c40f; margin-bottom: 10px; border-bottom: 2px solid #f1c40f; display: inline-block; padding-bottom: 5px; }
+        .save-msg { color: #666; font-size: 13px; margin-top: 40px; }
     </style>
 </head>
 <body>
-    <h2>🚀 안전장치가 추가된 빙 코인 타이머</h2>
-    <div id="timer">00:00:00</div>
-    
-    <div class="input-group">
-        <input type="number" id="minutesInput" placeholder="분 입력">
-        <button class="btn-set" onclick="setTimer()">시간 설정</button>
+
+    <h1>🚀 런사의 3구 독립 저장 타이머</h1>
+
+    <div class="timer-container" id="container1">
+        <h2>타이머 1</h2>
+        <div id="display1" class="timer-display">00:00:00</div>
+        <div class="input-group">
+            <input type="number" id="input1" placeholder="분 입력">
+            <button class="btn-set" onclick="setTimer(1)">시간 설정</button>
+        </div>
+        <button class="btn-start" onclick="startTimer(1)">시작</button>
+        <button class="btn-stop" onclick="stopTimer(1)">중지</button>
+        <button class="btn-reset" onclick="resetTimer(1)">초기화</button>
     </div>
 
-    <button class="btn-start" onclick="startTimer()">시작</button>
-    <button class="btn-stop" onclick="stopTimer()">중지</button>
-    <button class="btn-reset" onclick="resetTimer()">초기화</button>
+    <div class="timer-container" id="container2">
+        <h2>타이머 2</h2>
+        <div id="display2" class="timer-display">00:00:00</div>
+        <div class="input-group">
+            <input type="number" id="input2" placeholder="분 입력">
+            <button class="btn-set" onclick="setTimer(2)">시간 설정</button>
+        </div>
+        <button class="btn-start" onclick="startTimer(2)">시작</button>
+        <button class="btn-stop" onclick="stopTimer(2)">중지</button>
+        <button class="btn-reset" onclick="resetTimer(2)">초기화</button>
+    </div>
 
-    <p class="save-msg">※ 초기화 버튼 클릭 시 확인 창이 나타납니다.</p>
-
-    <script>
-        let timeLeft = 0;
-        let timerId = null;
-
-        // 페이지 로드 시 저장된 데이터 불러오기
-        window.onload = function() {
-            const savedTime = localStorage.getItem('lastTime');
-            if (savedTime) {
-                timeLeft = parseInt(savedTime);
-                updateDisplay();
-            }
-        };
-
-        function updateDisplay() {
-            const hrs = Math.floor(timeLeft / 3600);
-            const mins = Math.floor((timeLeft % 3600) / 60);
-            const secs = timeLeft % 60;
-            document.getElementById('timer').innerText = 
-                `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-            
-            // 실시간 저장
-            localStorage.setItem('lastTime', timeLeft);
-        }
-
-        function setTimer() {
-            const mins = document.getElementById('minutesInput').value;
-            if (mins) {
-                timeLeft = mins * 60;
-                updateDisplay();
-            }
-        }
-
-        function startTimer() {
-            if (timerId) return;
-            timerId = setInterval(() => {
-                if (timeLeft > 0) {
-                    timeLeft--;
-                    updateDisplay();
-                } else {
-                    clearInterval(timerId);
-                    timerId = null;
-                    alert("타이머 종료! 빙 코인을 확인하세요.");
-                }
-            }, 1000);
-        }
-
-        function stopTimer() {
-            clearInterval(timerId);
-            timerId = null;
-        }
-
-        // [수정된 부분] 초기화 전 확인창 띄우기
-        function resetTimer() {
-            // confirm()은 확인을 누르면 true, 취소를 누르면 false를 반환합니다.
-            const reallyReset = confirm("정말로 타이머를 초기화하시겠습니까?\n저장된 시간 데이터가 사라집니다.");
-            
-            if (reallyReset) {
-                stopTimer();
-                timeLeft = 0;
-                localStorage.removeItem('lastTime');
-                updateDisplay();
-                console.log("초기화 완료");
-            } else {
-                console.log("초기화 취소");
-            }
-        }
-    </script>
-</body>
-</html>
+    <div class="timer-
